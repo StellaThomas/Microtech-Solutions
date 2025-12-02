@@ -1,917 +1,5 @@
-// import { useEffect, useMemo, useState } from "react";
-// import {
-//   Box,
-//   AppBar,
-//   Toolbar,
-//   Typography,
-//   Container,
-//   Paper,
-//   TableContainer,
-//   Table,
-//   TableHead,
-//   TableRow,
-//   TableCell,
-//   TableBody,
-//   CircularProgress,
-//   Snackbar,
-//   Alert,
-//   Drawer,
-//   List,
-//   ListItem,
-//   ListItemButton,
-//   ListItemIcon,
-//   ListItemText,
-//   Divider,
-//   IconButton,
-//   useTheme,
-//   useMediaQuery,
-// } from "@mui/material";
-
-// import MenuIcon from "@mui/icons-material/Menu";
-// import RefreshIcon from "@mui/icons-material/Refresh";
-// import DashboardIcon from "@mui/icons-material/Dashboard";
-// import LogoutIcon from "@mui/icons-material/Logout";
-// import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-
-// import { useNavigate } from "react-router-dom";
-// import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
-
-// import { fetchAgentData } from "../api/api";
-// import logo from "../assets/logo.png";
-
-// export default function AcceptedOrdersPage() {
-//   const navigate = useNavigate();
-
-//   const [loading, setLoading] = useState(true);
-//   const [acceptedInfo, setAcceptedInfo] = useState([]);
-//   const [snack, setSnack] = useState({
-//     open: false,
-//     message: "",
-//     severity: "success",
-//   });
-
-//   const BASE_URL = "http://122.169.40.118:8002/api";
-//   const drawerWidth = 250;
-
-//   const theme = useTheme();
-//   const isSmDown = useMediaQuery(theme.breakpoints.down("sm"));
-//   const [mobileOpen, setMobileOpen] = useState(false);
-//   const toggleMobile = () => setMobileOpen((s) => !s);
-
-//   // Load ACCEPTED orders
-//   useEffect(() => {
-//     const loadAcceptedOrders = async () => {
-//       try {
-//         const codesRes = await fetch(`${BASE_URL}/orders/agent-codes`);
-//         const codesData = await codesRes.json();
-//         const agentCodes = codesData.data || codesData;
-
-//         const allAcc = [];
-
-//         for (const code of agentCodes) {
-//           const res = await fetchAgentData(code);
-//           const list = res?.orders || [];
-//           const agentName = res?.agentInfo?.AgentName || "Unknown";
-
-//           list.forEach((o) => {
-//             const status = String(o.status || "").trim().toLowerCase();
-//             if (status === "accepted") {
-//               allAcc.push({
-//                 AgentName: agentName,
-//                 AgentCode: code,
-//                 OrderId: o.id,
-//                 TotalOrder: o.totalPrice,
-//                 CreatedAt: o.createdAt,
-//               });
-//             }
-//           });
-//         }
-
-//         // Sort latest first
-//         allAcc.sort((a, b) => {
-//           const t1 = a.CreatedAt ? Date.parse(a.CreatedAt) : 0;
-//           const t2 = b.CreatedAt ? Date.parse(b.CreatedAt) : 0;
-//           return t2 - t1;
-//         });
-
-//         setAcceptedInfo(
-//           allAcc.map((o, i) => ({
-//             ...o,
-//             SrNo: i + 1,
-//           }))
-//         );
-
-//         setSnack({
-//           open: true,
-//           message: "Accepted orders loaded",
-//           severity: "success",
-//         });
-//       } catch (err) {
-//         setSnack({
-//           open: true,
-//           message: "Failed to load accepted orders",
-//           severity: "error",
-//         });
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     loadAcceptedOrders();
-//   }, []);
-
-//   // Table columns
-//   const tableColumns = useMemo(
-//     () => [
-//       { header: "अ. क्रं", accessorKey: "SrNo" },
-//       // { header: "ऑर्डर आयडी", accessorKey: "OrderId" },
-//       { header: "एजंट कोड", accessorKey: "AgentCode" },
-//       { header: "एजंट नाव", accessorKey: "AgentName" },
-//       { header: "एकूण ऑर्डर (₹)", accessorKey: "TotalOrder" },
-//       {
-//         header: "स्थिती",
-//         accessorKey: "status",
-//         cell: () => (
-//           <Box
-//             sx={{
-//               px: 1.2,
-//               py: 0.5,
-//               borderRadius: "20px",
-//               fontSize: "0.75rem",
-//               fontWeight: "600",
-//               backgroundColor: "#4CAF5033",
-//               color: "#4CAF50",
-//             }}
-//           >
-//             स्वीकारले
-//           </Box>
-//         ),
-//       },
-//       {
-//         header: "तारीख",
-//         accessorKey: "CreatedAt",
-//         cell: ({ row }) =>
-//           row.original.CreatedAt
-//             ? new Date(row.original.CreatedAt).toLocaleString("en-IN")
-//             : "-",
-//       },
-//     ],
-//     []
-//   );
-
-//   const table = useReactTable({
-//     data: acceptedInfo,
-//     columns: tableColumns,
-//     getCoreRowModel: getCoreRowModel(),
-//   });
-
-//   // Drawer UI
-//   const drawerContent = (
-//     <Box sx={{ textAlign: "center", py: 3 }}>
-//       <Typography variant="h6" sx={{ fontWeight: "bold", color: "white" }}>
-//         Admin Panel
-//       </Typography>
-
-//       <Divider sx={{ background: "rgba(255,255,255,0.3)", my: 1 }} />
-
-//       <List>
-//         <ListItem disablePadding>
-//           <ListItemButton sx={{ color: "white" }} onClick={() => navigate("/dashboard")}>
-//             <ListItemIcon sx={{ color: "white" }}>
-//               <DashboardIcon />
-//             </ListItemIcon>
-//             <ListItemText primary="Dashboard" />
-//           </ListItemButton>
-//         </ListItem>
-
-//         <ListItem disablePadding>
-//           <ListItemButton sx={{ color: "white" }} onClick={() => navigate("/accepted-orders")}>
-//             <ListItemIcon sx={{ color: "white" }}>
-//               <CheckCircleIcon />
-//             </ListItemIcon>
-//             <ListItemText primary="Accepted Orders" />
-//           </ListItemButton>
-//         </ListItem>
-//       </List>
-
-//       <Divider sx={{ background: "rgba(255,255,255,0.3)" }} />
-
-//       <ListItem disablePadding>
-//         <ListItemButton
-//           onClick={() => navigate("/login")}
-//           sx={{ color: "white", mx: 1, mb: 2 }}
-//         >
-//           <ListItemIcon sx={{ color: "white" }}>
-//             <LogoutIcon />
-//           </ListItemIcon>
-//           <ListItemText primary="Logout" />
-//         </ListItemButton>
-//       </ListItem>
-//     </Box>
-//   );
-
-//   return (
-//     <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      
-//       {/* Drawer */}
-//       {isSmDown ? (
-//         <Drawer
-//           variant="temporary"
-//           open={mobileOpen}
-//           onClose={toggleMobile}
-//           sx={{
-//             "& .MuiDrawer-paper": {
-//               width: drawerWidth,
-//               background: "linear-gradient(180deg,#0b5394,#073763)",
-//               color: "white",
-//             },
-//           }}
-//         >
-//           {drawerContent}
-//         </Drawer>
-//       ) : (
-//         <Drawer
-//           variant="permanent"
-//           sx={{
-//             width: drawerWidth,
-//             "& .MuiDrawer-paper": {
-//               width: drawerWidth,
-//               background: "linear-gradient(180deg,#0b5394,#073763)",
-//               color: "white",
-//             },
-//           }}
-//         >
-//           {drawerContent}
-//         </Drawer>
-//       )}
-
-//       {/* Main */}
-//       <Box sx={{ flexGrow: 1, bgcolor: "#f4f6f8" }}>
-        
-//         {/* AppBar */}
-//         <AppBar position="sticky" elevation={0} sx={{ background: "white", color: "#0b5394" }}>
-//           <Toolbar>
-//             {isSmDown && (
-//               <IconButton onClick={toggleMobile}>
-//                 <MenuIcon sx={{ color: "#0b5394" }} />
-//               </IconButton>
-//             )}
-
-//             <Box component="img" src={logo} alt="Logo" sx={{ height: 60, mr: 2 }} />
-
-//             <Box sx={{ flexGrow: 1 }}>
-//               <Typography variant="h6" sx={{ fontWeight: "bold", color: "#0b5394" }}>
-//                 श्री हनुमान सहकारी दूध व्यावसायिक व कृषिपुरक सेवा संस्था मर्यादित, यळगुड. जि. कोल्हापुर
-//               </Typography>
-
-//               <Typography variant="body2" sx={{ color: "#0b5394" }}>
-//                 Accepted Orders List
-//               </Typography>
-//             </Box>
-
-//             {!isSmDown && (
-//               <IconButton onClick={() => window.location.reload()}>
-//                 <RefreshIcon sx={{ color: "#0b5394" }} />
-//               </IconButton>
-//             )}
-//           </Toolbar>
-//         </AppBar>
-
-//         {/* Content */}
-//         <Container sx={{ py: 3 }}>
-//           <Paper elevation={4} sx={{ p: 2, borderRadius: 3 }}>
-//             <Typography
-//               variant="h6"
-//               sx={{ mb: 2, fontWeight: "bold", color: "#0b5394" }}
-//             >
-//               Accepted Orders
-//             </Typography>
-
-//             {loading ? (
-//               <Box sx={{ textAlign: "center", py: 3 }}>
-//                 <CircularProgress />
-//               </Box>
-//             ) : (
-//               <TableContainer sx={{ overflowX: "auto" }}>
-//                 <Table size="small">
-//                   <TableHead>
-//                     {table.getHeaderGroups().map((hg) => (
-//                       <TableRow key={hg.id}>
-//                         {hg.headers.map((header) => (
-//                           <TableCell key={header.id} sx={{ fontWeight: "bold" }}>
-//                             {flexRender(header.column.columnDef.header, header.getContext())}
-//                           </TableCell>
-//                         ))}
-//                       </TableRow>
-//                     ))}
-//                   </TableHead>
-
-//                   <TableBody>
-//                     {table.getRowModel().rows.map((row) => (
-//                       <TableRow key={row.id} hover>
-//                         {row.getVisibleCells().map((cell) => (
-//                           <TableCell key={cell.id}>
-//                             {flexRender(
-//                               cell.column.columnDef.cell ??
-//                                 cell.column.columnDef.accessorKey,
-//                               cell.getContext()
-//                             )}
-//                           </TableCell>
-//                         ))}
-//                       </TableRow>
-//                     ))}
-//                   </TableBody>
-//                 </Table>
-//               </TableContainer>
-//             )}
-//           </Paper>
-//         </Container>
-//       </Box>
-
-//       {/* Snackbar */}
-//       <Snackbar
-//         open={snack.open}
-//         autoHideDuration={3000}
-//         onClose={() => setSnack({ ...snack, open: false })}
-//       >
-//         <Alert severity={snack.severity}>{snack.message}</Alert>
-//       </Snackbar>
-//     </Box>
-//   );
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import { useEffect, useMemo, useState } from "react";
-// import {
-//   Box,
-//   AppBar,
-//   Toolbar,
-//   Typography,
-//   Container,
-//   Paper,
-//   TableContainer,
-//   Table,
-//   TableHead,
-//   TableRow,
-//   TableCell,
-//   TableBody,
-//   CircularProgress,
-//   Snackbar,
-//   Alert,
-//   Drawer,
-//   List,
-//   ListItem,
-//   ListItemButton,
-//   ListItemIcon,
-//   ListItemText,
-//   Divider,
-//   IconButton,
-//   TextField,
-// } from "@mui/material";
-
-// import RefreshIcon from "@mui/icons-material/Refresh";
-// import DashboardIcon from "@mui/icons-material/Dashboard";
-// import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-
-// import { useNavigate } from "react-router-dom";
-// import { fetchAgentData } from "../api/api";
-// import logo from "../assets/logo.png";
-
-// export default function AcceptedOrdersPage() {
-//   const navigate = useNavigate();
-
-//   const [loading, setLoading] = useState(false);
-
-//   const [acceptedOrders, setAcceptedOrders] = useState([]);
-//   const [todayOrders, setTodayOrders] = useState([]);
-//   const [yesterdayOrders, setYesterdayOrders] = useState([]);
-//   const [olderOrders, setOlderOrders] = useState({});
-
-//   const [fromDate, setFromDate] = useState("");
-//   const [toDate, setToDate] = useState("");
-
-//   const [snack, setSnack] = useState({
-//     open: false,
-//     message: "",
-//     severity: "success",
-//   });
-
-//   const BASE_URL = "http://122.169.40.118:8002/api";
-
-//   // ------------------------------------------
-//   // PRICE CLEANER (Fix long floating numbers)
-//   // ------------------------------------------
-//   const cleanPrice = (value) => {
-//     if (!value) return "0.00";
-//     const num = Number(value);
-//     if (isNaN(num)) return value;
-//     return num.toFixed(2);
-//   };
-
-//   const toISTDateString = (d) => {
-//     if (!d) return null;
-//     const utc = new Date(d);
-//     const ist = new Date(utc.getTime() + 19800000);
-//     return ist.toISOString().substring(0, 10);
-//   };
-
-//   const formatDate = (d) => {
-//     const dt = new Date(d);
-//     return dt.toLocaleDateString("en-IN", {
-//       day: "2-digit",
-//       month: "2-digit",
-//       year: "numeric",
-//     });
-//   };
-
-//   // =============================================
-//   // FETCH ACCEPTED ORDERS
-//   // =============================================
-//   const refreshAcceptedOrders = async () => {
-//     setLoading(true);
-//     try {
-//       const codeRes = await fetch(`${BASE_URL}/orders/agent-codes`);
-//       const codeData = await codeRes.json();
-//       const agentCodes = codeData.data || codeData;
-
-//       const allAccepted = [];
-
-//       for (let code of agentCodes) {
-//         const masterRes = await fetch(`${BASE_URL}/agent/${code}`);
-//         const masterInfo = (await masterRes.json())?.data || {};
-
-//         const ordersRes = await fetchAgentData(code);
-//         const list = ordersRes?.orders || [];
-
-//         list.forEach((o) => {
-//           if ((o.status || "").toLowerCase() === "accepted") {
-//             allAccepted.push({
-//               AgentCode: code,
-//               AgentName:
-//                 masterInfo.AgentName ||
-//                 ordersRes.agentInfo?.AgentName ||
-//                 "Unknown",
-//               SalesRouteCode: masterInfo.SalesRouteCode,
-//               RouteName: masterInfo.RouteName,
-//               VehichleNo: masterInfo.VehichleNo,
-//               TotalOrder: o.totalPrice ?? 0,
-//               status: "accepted",
-//               OrderId: o.id,
-//               CreatedAt: o.createdAt,
-//             });
-//           }
-//         });
-//       }
-
-//       setAcceptedOrders(allAccepted);
-
-//       setSnack({
-//         open: true,
-//         message: "Accepted orders loaded",
-//         severity: "success",
-//       });
-//     } catch (e) {
-//       setSnack({
-//         open: true,
-//         message: "Failed to load accepted orders",
-//         severity: "error",
-//       });
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // INITIAL LOAD
-//   useEffect(() => {
-//     refreshAcceptedOrders();
-//   }, []);
-
-//   // AUTO REFRESH EVERY 30 SEC
-//   useEffect(() => {
-//     const i = setInterval(refreshAcceptedOrders, 30000);
-//     return () => clearInterval(i);
-//   }, []);
-
-//   useEffect(() => {
-//     if (!acceptedOrders.length) return;
-
-//     let accepted = [...acceptedOrders];
-
-//     if (fromDate && toDate) {
-//       accepted = accepted.filter((o) => {
-//         const d = toISTDateString(o.CreatedAt);
-//         return d >= fromDate && d <= toDate;
-//       });
-//     }
-
-//     const now = new Date();
-//     const istNow = new Date(now.getTime() + 19800000);
-//     const todayStr = istNow.toISOString().substring(0, 10);
-
-//     const y = new Date(istNow);
-//     y.setDate(y.getDate() - 1);
-//     const yesterdayStr = y.toISOString().substring(0, 10);
-
-//     const todayList = [];
-//     const yesterdayList = [];
-//     const olderGrouped = {};
-
-//     accepted.forEach((order) => {
-//       const dt = toISTDateString(order.CreatedAt);
-
-//       if (dt === todayStr) todayList.push(order);
-//       else if (dt === yesterdayStr) yesterdayList.push(order);
-//       else {
-//         const label = formatDate(order.CreatedAt);
-//         if (!olderGrouped[label]) olderGrouped[label] = [];
-//         olderGrouped[label].push(order);
-//       }
-//     });
-
-//     const sortedOlder = {};
-//     Object.keys(olderGrouped)
-//       .sort((a, b) => new Date(b) - new Date(a))
-//       .forEach((k) => (sortedOlder[k] = olderGrouped[k]));
-
-//     setTodayOrders(todayList);
-//     setYesterdayOrders(yesterdayList);
-//     setOlderOrders(sortedOlder);
-//   }, [acceptedOrders, fromDate, toDate]);
-
-//   // =============================================
-//   // SECTION RENDER
-//   // =============================================
-//   const renderSection = (title, list) => (
-//     <>
-//       <TableRow sx={{ background: "#073763" }}>
-//         <TableCell colSpan={9} sx={{ fontWeight: "bold", color: "white" }}>
-//           {title}
-//         </TableCell>
-//       </TableRow>
-
-//       {list.length === 0 ? (
-//         <TableRow>
-//           <TableCell colSpan={9} sx={{ textAlign: "center" }}>
-//             No Accepted Orders
-//           </TableCell>
-//         </TableRow>
-//       ) : (
-//         list.map((o, i) => (
-//           <TableRow
-//             hover
-//             key={o.OrderId}
-//             sx={{ cursor: "pointer" }}
-//             onClick={() =>
-//               navigate(`/orders?orderId=${o.OrderId}&agentCode=${o.AgentCode}`)
-//             }
-//           >
-//             <TableCell>{i + 1}</TableCell>
-//             <TableCell>{o.AgentCode}</TableCell>
-//             <TableCell>{o.AgentName}</TableCell>
-//             <TableCell>{o.SalesRouteCode}</TableCell>
-//             <TableCell>{o.RouteName}</TableCell>
-//             <TableCell>{o.VehichleNo}</TableCell>
-
-//             {/* FIXED PRICE */}
-//             <TableCell>{cleanPrice(o.TotalOrder)}</TableCell>
-
-//             {/* DATE */}
-//             <TableCell>
-//               {o.CreatedAt
-//                 ? new Date(o.CreatedAt).toLocaleString("en-IN")
-//                 : "-"}
-//             </TableCell>
-
-//             <TableCell>
-//               <Box
-//                 sx={{
-//                   px: 1,
-//                   py: 0.5,
-//                   bgcolor: "#4CAF5033",
-//                   color: "#2e7d32",
-//                   borderRadius: "10px",
-//                   textAlign: "center",
-//                   fontWeight: "bold",
-//                 }}
-//               >
-//                 स्वीकारले
-//               </Box>
-//             </TableCell>
-//           </TableRow>
-//         ))
-//       )}
-//     </>
-//   );
-
-//   return (
-//     <Box sx={{ display: "flex", height: "100vh" }}>
-//       <Drawer
-//         variant="permanent"
-//         sx={{
-//           width: 260,
-//           "& .MuiDrawer-paper": {
-//             width: 260,
-//             background: "linear-gradient(180deg,#073763,#021e3a)",
-//             color: "white",
-//           },
-//         }}
-//       >
-//         <Box sx={{ textAlign: "center", py: 4 }}>
-//           <Typography variant="h6">Admin Panel</Typography>
-//         </Box>
-
-//         <Divider sx={{ background: "rgba(255,255,255,0.2)" }} />
-
-//         <List>
-//           <ListItem disablePadding>
-//             <ListItemButton onClick={() => navigate("/dashboard")}>
-//               <ListItemIcon sx={{ color: "white" }}>
-//                 <DashboardIcon />
-//               </ListItemIcon>
-//               <ListItemText primary="Dashboard" />
-//             </ListItemButton>
-//           </ListItem>
-
-//           <ListItem disablePadding>
-//             <ListItemButton onClick={() => navigate("/accepted-orders")}>
-//               <ListItemIcon sx={{ color: "white" }}>
-//                 <CheckCircleIcon />
-//               </ListItemIcon>
-//               <ListItemText primary="Accepted Orders" />
-//             </ListItemButton>
-//           </ListItem>
-//         </List>
-//       </Drawer>
-
-//       <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
-//         <AppBar
-//           position="sticky"
-//           sx={{ background: "white", color: "#073763" }}
-//         >
-//           <Toolbar sx={{ py: 2.5, px: 3 }}>
-//             <Box component="img" src={logo} sx={{ height: 60, mr: 3 }} />
-//             <Box sx={{ flexGrow: 1 }}>
-//               <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-//                 श्री हनुमान सहकारी दूध संस्था, यळगुड.
-//               </Typography>
-//               <Typography variant="body2">
-//                 Tal: Hatkangale, Dist. Kolhapur (Maharashtra)
-//               </Typography>
-//             </Box>
-
-//             <IconButton onClick={refreshAcceptedOrders}>
-//               <RefreshIcon sx={{ color: "#073763", fontSize: 28 }} />
-//             </IconButton>
-//           </Toolbar>
-//         </AppBar>
-
-//         <Container sx={{ py: 4 }}>
-//           <Paper elevation={6} sx={{ p: 3 }}>
-//             <Box
-//               sx={{
-//                 display: "flex",
-//                 justifyContent: "space-between",
-//                 mb: 3,
-//                 alignItems: "center",
-//               }}
-//             >
-//               <Typography
-//                 variant="h6"
-//                 sx={{
-//                   fontWeight: "bold",
-//                   color: "#073763",
-//                   borderLeft: "6px solid #073763",
-//                   pl: 1.5,
-//                 }}
-//               >
-//                 Accepted Orders
-//               </Typography>
-
-//               <Box sx={{ display: "flex", gap: 2 }}>
-//                 <TextField
-//                   type="date"
-//                   InputLabelProps={{ shrink: true }}
-//                   label="From Date"
-//                   value={fromDate}
-//                   onChange={(e) => setFromDate(e.target.value)}
-//                 />
-
-//                 <TextField
-//                   type="date"
-//                   InputLabelProps={{ shrink: true }}
-//                   label="To Date"
-//                   value={toDate}
-//                   onChange={(e) => setToDate(e.target.value)}
-//                 />
-//               </Box>
-//             </Box>
-
-//             {loading ? (
-//               <Box sx={{ textAlign: "center", py: 4 }}>
-//                 <CircularProgress />
-//               </Box>
-//             ) : (
-//               <TableContainer sx={{ border: "1px solid #ddd", borderRadius: 2 }}>
-//                 <Table>
-//                   <TableHead sx={{ background: "#f0f4f9" }}>
-//                     <TableRow>
-//                       <TableCell sx={{ fontWeight: "bold" }}>
-//                         अ. क्रं
-//                       </TableCell>
-//                       <TableCell sx={{ fontWeight: "bold" }}>
-//                         एजंट कोड
-//                       </TableCell>
-//                       <TableCell sx={{ fontWeight: "bold" }}>
-//                         एजंट नाव
-//                       </TableCell>
-//                       <TableCell sx={{ fontWeight: "bold" }}>
-//                         रूट कोड
-//                       </TableCell>
-//                       <TableCell sx={{ fontWeight: "bold" }}>
-//                         रूट नाव
-//                       </TableCell>
-//                       <TableCell sx={{ fontWeight: "bold" }}>
-//                         वाहन क्रमांक
-//                       </TableCell>
-//                       <TableCell sx={{ fontWeight: "bold" }}>
-//                         एकूण ऑर्डर (₹)
-//                       </TableCell>
-
-//                       <TableCell sx={{ fontWeight: "bold" }}>
-//                         तारीख
-//                       </TableCell>
-
-//                       <TableCell sx={{ fontWeight: "bold" }}>
-//                         स्थिती
-//                       </TableCell>
-//                     </TableRow>
-//                   </TableHead>
-
-//                   <TableBody>
-//                     {renderSection("Today", todayOrders)}
-//                     {renderSection("Yesterday", yesterdayOrders)}
-//                     {Object.keys(olderOrders).map((date) =>
-//                       renderSection(date, olderOrders[date])
-//                     )}
-//                   </TableBody>
-//                 </Table>
-//               </TableContainer>
-//             )}
-//           </Paper>
-//         </Container>
-//       </Box>
-
-//       <Snackbar
-//         open={snack.open}
-//         autoHideDuration={3000}
-//         onClose={() => setSnack({ ...snack, open: false })}
-//       >
-//         <Alert severity={snack.severity}>{snack.message}</Alert>
-//       </Snackbar>
-//     </Box>
-//   );
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import { useEffect, useState } from "react";
+// src/pages/AcceptedOrdersPage.jsx
+import { useEffect, useState, useRef } from "react";
 import {
   Box,
   AppBar,
@@ -937,21 +25,27 @@ import {
   Divider,
   IconButton,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  Tooltip,
 } from "@mui/material";
 
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DownloadIcon from "@mui/icons-material/Download";
 
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 export default function AcceptedOrdersPage() {
   const navigate = useNavigate();
-
   const [loading, setLoading] = useState(false);
 
-  const [acceptedOrders, setAcceptedOrders] = useState([]);
+  const [orders, setOrders] = useState([]); // raw normalized orders from server
   const [todayOrders, setTodayOrders] = useState([]);
   const [yesterdayOrders, setYesterdayOrders] = useState([]);
   const [olderOrders, setOlderOrders] = useState({});
@@ -959,33 +53,42 @@ export default function AcceptedOrdersPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
+  // route filter uses routeInfo.RouteName (option B)
+  const [routes, setRoutes] = useState([]);
+  const [selectedRoute, setSelectedRoute] = useState("");
+
   const [snack, setSnack] = useState({
     open: false,
     message: "",
     severity: "success",
   });
 
-  // ------------------------------------------
-  // PRICE CLEANER (Fix long floating numbers)
-  // ------------------------------------------
+  const abortRef = useRef(null);
+
+  // API base
+  const BASE_URL = "http://122.169.40.118:8002/api";
+
+  // -------------------------
+  // Helpers
+  // -------------------------
   const cleanPrice = (value) => {
     if (value === null || value === undefined) return "0.00";
     const num = Number(value);
-    if (isNaN(num)) return value;
+    if (isNaN(num)) return String(value);
     return num.toFixed(2);
   };
 
-  // Try to normalize many possible createdAt formats to a Date object
   const normalizeCreatedAt = (raw) => {
     if (!raw) return new Date().toISOString();
     const candidates = [
-      raw.CreatedAt,
       raw.createdAt,
+      raw.CreatedAt,
+      raw.created_at,
       raw.orderDate,
-      raw.Created_Date,
       raw.date,
-      raw.raw?.CreatedAt,
+      raw.Created_Date,
       raw.raw?.createdAt,
+      raw.raw?.CreatedAt,
       raw.raw?.orderDate,
       raw.raw?.date,
     ].filter(Boolean);
@@ -993,190 +96,349 @@ export default function AcceptedOrdersPage() {
     for (const c of candidates) {
       // numeric timestamps (seconds or ms)
       if (typeof c === "number") {
-        // if seconds, convert to ms (heuristic)
         const ms = c < 1e12 ? c * 1000 : c;
         const dt = new Date(ms);
         if (!Number.isNaN(dt.getTime())) return dt.toISOString();
       }
-      // string timestamps
-      try {
-        const maybeNum = Number(c);
-        if (!Number.isNaN(maybeNum) && c.trim().length <= 13) {
-          // numeric string
+      // string numeric
+      if (typeof c === "string") {
+        const trimmed = c.trim();
+        const maybeNum = Number(trimmed);
+        if (!Number.isNaN(maybeNum) && trimmed.length <= 13) {
           const ms = maybeNum < 1e12 ? maybeNum * 1000 : maybeNum;
           const dt2 = new Date(ms);
           if (!Number.isNaN(dt2.getTime())) return dt2.toISOString();
         }
-      } catch {}
+      }
       const dt = new Date(c);
       if (!Number.isNaN(dt.getTime())) return dt.toISOString();
     }
 
-    // fallback: raw.CreatedAt if exists
-    if (raw.CreatedAt) {
-      const dt = new Date(raw.CreatedAt);
-      if (!Number.isNaN(dt.getTime())) return dt.toISOString();
-    }
-    // ultimate fallback now
+    // fallback
     return new Date().toISOString();
   };
 
-  const toISTDateString = (d) => {
-    if (!d) return null;
-    const utc = new Date(d);
-    if (Number.isNaN(utc.getTime())) return null;
-    const ist = new Date(utc.getTime() + 19800000);
-    return ist.toISOString().substring(0, 10); // YYYY-MM-DD
+  const toIST = (isoOrDate) => {
+    const d = new Date(isoOrDate);
+    if (Number.isNaN(d.getTime())) return null;
+    const ist = new Date(d.getTime() + 19800000);
+    return ist;
+  };
+
+  const toISTDateString = (iso) => {
+    const ist = toIST(iso);
+    if (!ist) return null;
+    return ist.toISOString().split("T")[0]; // YYYY-MM-DD
+  };
+
+  const toISTTimeString = (iso) => {
+    const ist = toIST(iso);
+    if (!ist) return null;
+    return ist.toTimeString().split(" ")[0]; // HH:MM:SS
   };
 
   const formatDateLabel = (isoString) => {
     if (!isoString) return "";
     const dt = new Date(isoString);
     if (Number.isNaN(dt.getTime())) return "";
-    return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" }); // DD/MM/YYYY
+    return dt.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
-  // =============================================
-  // LOAD ACCEPTED ORDERS FROM localStorage
-  // =============================================
-  const refreshAcceptedOrders = async () => {
+  // -------------------------
+  // Fetch accepted orders from API
+  // -------------------------
+  const fetchAccepted = async () => {
     setLoading(true);
+    setSnack({ open: false, message: "", severity: "success" });
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    abortRef.current = new AbortController();
     try {
-      const raw = localStorage.getItem("accepted_orders_list");
-      const list = raw ? JSON.parse(raw) : [];
+      const res = await fetch(`${BASE_URL}/orders/Status/Accepted`, {
+        signal: abortRef.current.signal,
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Network ${res.status} ${res.statusText} ${txt}`);
+      }
+      const payload = await res.json();
+      if (!payload || !payload.success) {
+        throw new Error(payload?.message || "Failed to load accepted orders");
+      }
 
-      // Normalize and ensure CreatedAt exists and is ISO string
-      const normalized = (list || []).map((o) => {
-        // if o already has CreatedAt, use it; else infer from nested raw
-        const createdAtIso = o.CreatedAt
-          ? normalizeCreatedAt({ CreatedAt: o.CreatedAt })
-          : normalizeCreatedAt(o.raw ?? o);
+      const list = Array.isArray(payload.data) ? payload.data : [];
+
+      // normalize each order to expected shape for UI
+      const normalized = list.map((o) => {
+        const createdIso = normalizeCreatedAt(o);
         return {
-          AgentCode: o.AgentCode ?? o.raw?.agentCode ?? "N/A",
+          _id: o._id,
+          OrderId: o._id,
+          agentCode: o.agentCode ?? o.AgentCode ?? o.raw?.agentCode ?? null,
+          route:
+            typeof o.route !== "undefined"
+              ? o.route
+              : o.route ?? "",
+          routeInfo: o.routeInfo ?? {},
+          itemInfo: Array.isArray(o.itemInfo)
+            ? o.itemInfo
+            : Array.isArray(o.items)
+            ? o.items
+            : [],
           AgentName:
-            o.AgentName ??
-            o.raw?.agentName ??
-            o.raw?.agentDetails?.AgentName ??
+            (o.agentDetails &&
+              (o.agentDetails.AgentNameEng || o.agentDetails.AgentName)) ||
+            o.agentName ||
             "Unknown",
-          SalesRouteCode:
-            o.SalesRouteCode ?? o.raw?.SalesRouteCode ?? o.raw?.routeCode ?? "",
-          RouteName: o.RouteName ?? o.raw?.RouteName ?? o.raw?.routeName ?? "",
-          VehichleNo:
-            o.VehichleNo ?? o.raw?.VehichleNo ?? o.raw?.vehicleNo ?? "",
           TotalOrder:
             typeof o.TotalOrder !== "undefined"
               ? o.TotalOrder
-              : o.raw?.TotalOrder ?? o.raw?.totalPrice ?? 0,
-          status: "accepted",
-          OrderId: o.OrderId ?? o.raw?.OrderId ?? o.raw?.id ?? "",
-          CreatedAt: createdAtIso,
+              : o.totalPrice ?? 0,
+          status: (o.status ?? "Accepted").toLowerCase(),
+          CreatedAt: o.createdAt ?? o.CreatedAt ?? createdIso,
+          raw: o,
         };
       });
 
-      // Sort by CreatedAt descending (newest first)
-      normalized.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+      // build route list based on routeInfo.RouteName (option B)
+      const uniq = {};
+      normalized.forEach((n) => {
+        const rn = (n.routeInfo && n.routeInfo.RouteName) || "(No route)";
+        const rc = n.route || "";
+        const key = rc ? `${rn}||${rc}` : rn;
+        if (!uniq[key]) uniq[key] = { name: rn, code: rc, key: key };
+      });
+      const routeList = Object.values(uniq).sort((a, b) =>
+        a.name > b.name ? 1 : -1
+      );
 
-      setAcceptedOrders(normalized);
-
+      setRoutes(routeList);
+      setOrders(normalized);
       setSnack({
         open: true,
-        message: "Accepted orders loaded",
+        message: `Loaded ${normalized.length} accepted order(s)`,
         severity: "success",
       });
-    } catch (e) {
-      console.error("refreshAcceptedOrders error", e);
-      setSnack({
-        open: true,
-        message: "Failed to load accepted orders",
-        severity: "error",
-      });
+    } catch (err) {
+      if (err.name === "AbortError") {
+        // ignore
+      } else {
+        console.error("fetchAccepted error:", err);
+        setSnack({
+          open: true,
+          message: "Failed to fetch accepted orders: " + err.message,
+          severity: "error",
+        });
+        setOrders([]);
+        setRoutes([]);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // INITIAL LOAD
   useEffect(() => {
-    refreshAcceptedOrders();
+    fetchAccepted();
     // eslint-disable-next-line
   }, []);
 
-  // AUTO REFRESH EVERY 30 SEC (re-read localStorage so Dashboard accepts reflect here)
+  // -------------------------
+  // Grouping + filtering logic (today / yesterday / older)
+  // -------------------------
   useEffect(() => {
-    const i = setInterval(refreshAcceptedOrders, 30000);
-    return () => clearInterval(i);
-    // eslint-disable-next-line
-  }, []);
-
-  useEffect(() => {
-    if (!acceptedOrders.length) {
+    if (!orders.length) {
       setTodayOrders([]);
       setYesterdayOrders([]);
       setOlderOrders({});
       return;
     }
 
-    let accepted = [...acceptedOrders];
+    // apply route filter using routeInfo.RouteName and root route field
+    let filtered = [...orders];
+    if (selectedRoute) {
+      filtered = filtered.filter((o) => {
+        const rn = o.routeInfo?.RouteName || "(No route)";
+        const rc = o.route || "";
+        const key = rc ? `${rn}||${rc}` : rn;
+        return key === selectedRoute;
+      });
+    }
 
-    // apply optional date filters (YYYY-MM-DD strings)
+    // apply date range if both provided (fromDate/toDate in YYYY-MM-DD)
     if (fromDate && toDate) {
-      accepted = accepted.filter((o) => {
-        const d = toISTDateString(o.CreatedAt);
-        return d >= fromDate && d <= toDate;
+      filtered = filtered.filter((o) => {
+        const ds = toISTDateString(o.CreatedAt);
+        return ds && ds >= fromDate && ds <= toDate;
       });
     }
 
     const now = new Date();
     const istNow = new Date(now.getTime() + 19800000);
     const todayStr = istNow.toISOString().substring(0, 10);
-
     const y = new Date(istNow);
     y.setDate(y.getDate() - 1);
     const yesterdayStr = y.toISOString().substring(0, 10);
 
-    const todayList = [];
-    const yesterdayList = [];
-    const olderGrouped = {};
+    const t = [];
+    const yList = [];
+    const older = {};
 
-    // ensure each list is sorted newest -> oldest by CreatedAt
-    accepted.forEach((order) => {
+    filtered.forEach((order) => {
       const dtIso = toISTDateString(order.CreatedAt);
       if (dtIso === todayStr) {
-        todayList.push(order);
+        t.push(order);
       } else if (dtIso === yesterdayStr) {
-        yesterdayList.push(order);
+        yList.push(order);
       } else {
-        const label = formatDateLabel(order.CreatedAt); // human label
-        if (!olderGrouped[label]) olderGrouped[label] = [];
-        olderGrouped[label].push(order);
+        const label = formatDateLabel(order.CreatedAt);
+        if (!older[label]) older[label] = [];
+        older[label].push(order);
       }
     });
 
-    // sort each group's rows newest -> oldest
-    const sortDesc = (arr) => arr.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
-    sortDesc(todayList);
-    sortDesc(yesterdayList);
-    Object.keys(olderGrouped).forEach((k) => sortDesc(olderGrouped[k]));
+    // sort groups newest -> oldest
+    const sortDesc = (arr) =>
+      arr.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+    sortDesc(t);
+    sortDesc(yList);
+    Object.keys(older).forEach((k) => sortDesc(older[k]));
 
-    // sort older groups by date descending (newest date first)
+    // sort older groups by date desc
     const sortedOlder = {};
-    Object.keys(olderGrouped)
+    Object.keys(older)
       .sort((a, b) => {
-        // convert labels back to Date for correct sort
-        const da = new Date(olderGrouped[a][0]?.CreatedAt);
-        const db = new Date(olderGrouped[b][0]?.CreatedAt);
+        const da = new Date(older[a][0]?.CreatedAt);
+        const db = new Date(older[b][0]?.CreatedAt);
         return db - da;
       })
-      .forEach((k) => (sortedOlder[k] = olderGrouped[k]));
+      .forEach((k) => (sortedOlder[k] = older[k]));
 
-    setTodayOrders(todayList);
-    setYesterdayOrders(yesterdayList);
+    setTodayOrders(t);
+    setYesterdayOrders(yList);
     setOlderOrders(sortedOlder);
-  }, [acceptedOrders, fromDate, toDate]);
+  }, [orders, selectedRoute, fromDate, toDate]);
 
-  // =============================================
-  // SECTION RENDER
-  // =============================================
+  // -------------------------
+  // CSV builder - one row per item
+  // Columns: agentCode, routeCode (order.route), itemCode, quantities, orderDate (IST YYYY-MM-DD), orderTime (IST hh:mm:ss)
+  // -------------------------
+  const buildCSVForOrders = (visibleOrders) => {
+    if (!visibleOrders || visibleOrders.length === 0) return null;
+
+    const headers = [
+      "agentCode",
+      "routeCode",
+      "itemCode",
+      "quantities",
+      "orderDate",
+      "orderTime",
+    ];
+    const rows = [];
+
+    visibleOrders.forEach((o) => {
+      const items = Array.isArray(o.itemInfo) ? o.itemInfo : [];
+      const orderDateStr = toISTDateString(o.CreatedAt) || "";
+      const orderTimeStr = toISTTimeString(o.CreatedAt) || "";
+
+      // if no items, push a single row with N/A
+      if (!items.length) {
+        rows.push({
+          agentCode: o.agentCode ?? "",
+          routeCode: typeof o.route !== "undefined" ? o.route : "",
+          itemCode: "N/A",
+          quantities: 0,
+          orderDate: orderDateStr,
+          orderTime: orderTimeStr,
+        });
+      } else {
+        items.forEach((it) => {
+          rows.push({
+            agentCode: o.agentCode ?? "",
+            routeCode: typeof o.route !== "undefined" ? o.route : "",
+            itemCode:
+              it.itemCode ??
+              it.ItemCode ??
+              it.code ??
+              String(it.name ?? "UNKNOWN"),
+            quantities: it.quantity ?? it.qty ?? 0,
+            orderDate: orderDateStr,
+            orderTime: orderTimeStr,
+          });
+        });
+      }
+    });
+
+    // build CSV string with BOM
+    const headerLine = headers.join(",") + "\n";
+    const body = rows
+      .map((r) =>
+        headers
+          .map((h) => {
+            const v = r[h] ?? "";
+            return `"${String(v).replace(/"/g, '""')}"`;
+          })
+          .join(",")
+      )
+      .join("\n");
+
+    return "\uFEFF" + headerLine + body;
+  };
+
+  const createCSVForSelectedRoute = () => {
+    // gather visible orders (already filtered by route and date)
+    const visible = [...todayOrders, ...yesterdayOrders];
+    Object.keys(olderOrders).forEach((k) => visible.push(...olderOrders[k]));
+
+    if (!visible.length) {
+      setSnack({
+        open: true,
+        message: "No orders to export for selected filter",
+        severity: "warning",
+      });
+      return;
+    }
+
+    const csv = buildCSVForOrders(visible);
+    if (!csv) {
+      setSnack({
+        open: true,
+        message: "Nothing to export",
+        severity: "warning",
+      });
+      return;
+    }
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const route = routes.find((r) => r.key === selectedRoute);
+    const routeDisplay = route ? `${route.name.replace(/\s+/g, "_")}_${route.code}` : "selected";
+    const safeName = `accepted_${routeDisplay}_${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = safeName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setSnack({
+      open: true,
+      message: `CSV created (${visible.length} order rows transformed to item-rows)`,
+      severity: "success",
+    });
+  };
+
+  // -------------------------
+  // Section renderer
+  // -------------------------
   const renderSection = (title, list) => (
     <>
       <TableRow sx={{ background: "#073763" }}>
@@ -1195,28 +457,46 @@ export default function AcceptedOrdersPage() {
         list.map((o, i) => (
           <TableRow
             hover
-            key={o.OrderId || `${o.AgentCode}-${i}-${title}`}
+            key={o.OrderId || `${o.agentCode}-${i}-${title}`}
             sx={{ cursor: "pointer" }}
             onClick={() =>
-              navigate(`/orders?orderId=${o.OrderId}&agentCode=${o.AgentCode}`)
+              navigate(`/orders?orderId=${o.OrderId}&agentCode=${o.agentCode}`)
             }
           >
-            <TableCell>{i + 1}</TableCell>
-            <TableCell>{o.AgentCode}</TableCell>
-            <TableCell>{o.AgentName}</TableCell>
-            <TableCell>{o.SalesRouteCode}</TableCell>
-            <TableCell>{o.RouteName}</TableCell>
-            <TableCell>{o.VehichleNo}</TableCell>
-
-            {/* FIXED PRICE */}
-            <TableCell>{cleanPrice(o.TotalOrder)}</TableCell>
-
-            {/* DATE */}
-            <TableCell>
-              {o.CreatedAt ? new Date(o.CreatedAt).toLocaleString("en-IN") : "-"}
+            <TableCell sx={{ width: 40 }}>{i + 1}</TableCell>
+            <TableCell sx={{ width: 120 }}>{o.agentCode}</TableCell>
+            <TableCell
+              sx={{
+                minWidth: 180,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {o.AgentName}
+            </TableCell>
+            <TableCell sx={{ whiteSpace: "nowrap", width: 100 }}>
+              {o.route}
+            </TableCell>
+            <TableCell sx={{ width: 140 }}>
+              {o.routeInfo?.RouteName ?? "(No route)"}
             </TableCell>
 
-            <TableCell>
+            <TableCell sx={{ whiteSpace: "nowrap", width: 120 }}>
+              {o.routeInfo?.VehicleNo ?? "-"}
+            </TableCell>
+
+            <TableCell sx={{ width: 150 }}>
+              {cleanPrice(o.TotalOrder)}
+            </TableCell>
+
+            <TableCell sx={{ width: 200 }}>
+              {o.CreatedAt
+                ? new Date(o.CreatedAt).toLocaleString("en-IN")
+                : "-"}
+            </TableCell>
+
+            <TableCell sx={{ width: 120 }}>
               <Box
                 sx={{
                   px: 1,
@@ -1237,6 +517,9 @@ export default function AcceptedOrdersPage() {
     </>
   );
 
+  // -------------------------
+  // UI
+  // -------------------------
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
       <Drawer
@@ -1278,19 +561,26 @@ export default function AcceptedOrdersPage() {
       </Drawer>
 
       <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
-        <AppBar position="sticky" sx={{ background: "white", color: "#073763" }}>
+        <AppBar
+          position="sticky"
+          sx={{ background: "white", color: "#073763" }}
+        >
           <Toolbar sx={{ py: 2.5, px: 3 }}>
             <Box component="img" src={logo} sx={{ height: 60, mr: 3 }} />
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6" sx={{ fontWeight: "bold" }}>
                 श्री हनुमान सहकारी दूध संस्था, यळगुड.
               </Typography>
-              <Typography variant="body2">Tal: Hatkangale, Dist. Kolhapur (Maharashtra)</Typography>
+              <Typography variant="body2">
+                Tal: Hatkangale, Dist. Kolhapur (Maharashtra)
+              </Typography>
             </Box>
 
-            <IconButton onClick={refreshAcceptedOrders}>
-              <RefreshIcon sx={{ color: "#073763", fontSize: 28 }} />
-            </IconButton>
+            <Tooltip title="Refresh">
+              <IconButton onClick={fetchAccepted}>
+                <RefreshIcon sx={{ color: "#073763", fontSize: 28 }} />
+              </IconButton>
+            </Tooltip>
           </Toolbar>
         </AppBar>
 
@@ -1316,7 +606,41 @@ export default function AcceptedOrdersPage() {
                 Accepted Orders
               </Typography>
 
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                <FormControl size="small" sx={{ minWidth: 300 }}>
+                  <InputLabel id="route-filter-label" shrink>
+                    Filter by Route
+                  </InputLabel>
+                  <Select
+                    labelId="route-filter-label"
+                    label="Filter by Route"
+                    value={selectedRoute}
+                    onChange={(e) => setSelectedRoute(e.target.value)}
+                    displayEmpty
+                    renderValue={(selected) => {
+                      if (!selected) {
+                        return (
+                          <span style={{ color: "#999" }}>All Routes</span>
+                        );
+                      }
+                      const route = routes.find((r) => r.key === selected);
+                      return route
+                        ? `${route.name} (${route.code})`
+                        : selected;
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>All Routes</em>
+                    </MenuItem>
+
+                    {routes.map((r) => (
+                      <MenuItem key={r.key} value={r.key}>
+                        {r.name} ({r.code})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
                 <TextField
                   type="date"
                   InputLabelProps={{ shrink: true }}
@@ -1332,6 +656,29 @@ export default function AcceptedOrdersPage() {
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
                 />
+
+                {/* Create CSV button — show only when a route filter is applied and there are visible orders */}
+                {selectedRoute &&
+                  todayOrders.length +
+                    yesterdayOrders.length +
+                    Object.values(olderOrders).reduce(
+                      (s, a) => s + a.length,
+                      0
+                    ) >
+                    0 && (
+                    <Button
+                      variant="contained"
+                      startIcon={<DownloadIcon />}
+                      onClick={createCSVForSelectedRoute}
+                      sx={{
+                        background: "linear-gradient(90deg,#28a745,#1e7e34)",
+                        color: "#fff",
+                        borderRadius: 2,
+                      }}
+                    >
+                      Create CSV
+                    </Button>
+                  )}
               </Box>
             </Box>
 
@@ -1340,17 +687,30 @@ export default function AcceptedOrdersPage() {
                 <CircularProgress />
               </Box>
             ) : (
-              <TableContainer sx={{ border: "1px solid #ddd", borderRadius: 2 }}>
+              <TableContainer
+                sx={{ border: "1px solid #ddd", borderRadius: 2 }}
+              >
                 <Table>
                   <TableHead sx={{ background: "#f0f4f9" }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: "bold" }}>अ. क्रं</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>एजंट कोड</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>एजंट नाव</TableCell>
+                      <TableCell sx={{ fontWeight: "bold", width: 40 }}>
+                        अ. क्रं
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>
+                        एजंट कोड
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>
+                        एजंट नाव
+                      </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>रूट कोड</TableCell>
+
                       <TableCell sx={{ fontWeight: "bold" }}>रूट नाव</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>वाहन क्रमांक</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>एकूण ऑर्डर (₹)</TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>
+                        वाहन क्रमांक
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>
+                        एकूण ऑर्डर (₹)
+                      </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>तारीख</TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>स्थिती</TableCell>
                     </TableRow>
@@ -1359,7 +719,9 @@ export default function AcceptedOrdersPage() {
                   <TableBody>
                     {renderSection("Today", todayOrders)}
                     {renderSection("Yesterday", yesterdayOrders)}
-                    {Object.keys(olderOrders).map((date) => renderSection(date, olderOrders[date]))}
+                    {Object.keys(olderOrders).map((date) =>
+                      renderSection(date, olderOrders[date])
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -1368,7 +730,11 @@ export default function AcceptedOrdersPage() {
         </Container>
       </Box>
 
-      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ ...snack, open: false })}>
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={3500}
+        onClose={() => setSnack({ ...snack, open: false })}
+      >
         <Alert severity={snack.severity}>{snack.message}</Alert>
       </Snackbar>
     </Box>
