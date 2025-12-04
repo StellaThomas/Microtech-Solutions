@@ -391,6 +391,7 @@ export default function AcceptedOrdersPage() {
       "routeCode",
       "itemCode",
       "qty",
+      "deptcode",
       "orderDate",
       "orderTime",
       "Accode",
@@ -400,18 +401,29 @@ export default function AcceptedOrdersPage() {
       "amt",
     ];
 
-    // Sort by correct IST time
+    // Sort by IST date
     const sorted = [...visibleOrders].sort(
       (a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt)
     );
 
+    // -------------------------------
+    // NEW: Agent-wise Entry Numbers
+    // -------------------------------
+    const agentEntryMap = {};
+    let runningEntryNo = 1;
+
+    sorted.forEach((o) => {
+      const agent = o.agentCode;
+      if (!agentEntryMap[agent]) {
+        agentEntryMap[agent] = runningEntryNo++;
+      }
+    });
+
     const rows = [];
-    let entryCounter = 1; // increments PER CSV ROW
 
     sorted.forEach((o) => {
       const items = Array.isArray(o.itemInfo) ? o.itemInfo : [];
 
-      // Convert directly to IST (no manual +5:30)
       const istDate = new Date(
         new Date(o.CreatedAt).toLocaleString("en-US", {
           timeZone: "Asia/Kolkata",
@@ -427,14 +439,16 @@ export default function AcceptedOrdersPage() {
       const salesmanCode =
         o.agentDetails?.SalesmanCode ?? o.raw?.agentDetails?.SalesmanCode ?? "";
 
-      // If no items
+      const entryNumber = agentEntryMap[o.agentCode] || 0;
+
       if (!items.length) {
         rows.push({
-          EntryNo: entryCounter++,
+          EntryNo: entryNumber,
           agentCode: o.agentCode ?? "",
           routeCode: o.route ?? "",
           itemCode: "N/A",
           qty: 0,
+          deptcode: it.deptCode,
           orderDate: orderDateStr,
           orderTime: orderTimeStr,
           Accode: bankCode,
@@ -446,14 +460,14 @@ export default function AcceptedOrdersPage() {
         return;
       }
 
-      // For each item row
       items.forEach((it) => {
         rows.push({
-          EntryNo: entryCounter++, // ✔ each item gets own entry number
+          EntryNo: entryNumber,
           agentCode: o.agentCode ?? "",
           routeCode: o.route ?? "",
           itemCode: it.itemCode ?? it.code ?? it.itemName ?? "UNKNOWN",
           qty: it.quantity ?? it.qty ?? 0,
+          deptcode : it.deptCode ?? "null",
           orderDate: orderDateStr,
           orderTime: orderTimeStr,
           Accode: bankCode,
@@ -465,7 +479,6 @@ export default function AcceptedOrdersPage() {
       });
     });
 
-    // Convert rows → CSV
     const headerLine = headers.join(",") + "\n";
 
     const body = rows
