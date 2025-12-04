@@ -49,6 +49,14 @@ export default function AcceptedOrdersPage() {
   const [todayOrders, setTodayOrders] = useState([]);
   const [yesterdayOrders, setYesterdayOrders] = useState([]);
   const [olderOrders, setOlderOrders] = useState({});
+  const [csvDate, setCsvDate] = useState(""); // user-selected date for CSV
+
+  // Which sections are expanded
+  const [expandedSections, setExpandedSections] = useState({
+    Today: true, // show by default
+    Yesterday: false, // hidden
+    Older: {}, // dynamic keys for older dates
+  });
 
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -118,6 +126,23 @@ export default function AcceptedOrdersPage() {
     return new Date().toISOString();
   };
 
+  const toggleSection = (title) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [title]: !prev[title],
+    }));
+  };
+
+  const toggleOlder = (dateKey) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      Older: {
+        ...prev.Older,
+        [dateKey]: !prev.Older?.[dateKey],
+      },
+    }));
+  };
+
   const toIST = (isoOrDate) => {
     const d = new Date(isoOrDate);
     if (Number.isNaN(d.getTime())) return null;
@@ -181,10 +206,7 @@ export default function AcceptedOrdersPage() {
           _id: o._id,
           OrderId: o._id,
           agentCode: o.agentCode ?? o.AgentCode ?? o.raw?.agentCode ?? null,
-          route:
-            typeof o.route !== "undefined"
-              ? o.route
-              : o.route ?? "",
+          route: typeof o.route !== "undefined" ? o.route : o.route ?? "",
           routeInfo: o.routeInfo ?? {},
           itemInfo: Array.isArray(o.itemInfo)
             ? o.itemInfo
@@ -324,65 +346,132 @@ export default function AcceptedOrdersPage() {
     setOlderOrders(sortedOlder);
   }, [orders, selectedRoute, fromDate, toDate]);
 
+  const filterOrdersForCSV = () => {
+    const dateToUse = csvDate || toIST(new Date()).toISOString().split("T")[0];
+    // YYYY-MM-DD
+
+    if (!selectedRoute) {
+      setSnack({
+        open: true,
+        message: "Please select a Route",
+        severity: "warning",
+      });
+      return [];
+    }
+
+    const route = routes.find((r) => r.key === selectedRoute);
+    if (!route) return [];
+
+    return orders.filter((o) => {
+      const rn = o.routeInfo?.RouteName || "(No route)";
+      const rc = o.route || "";
+      const key = rc ? `${rn}||${rc}` : rn;
+
+      const orderDate = toISTDateString(o.CreatedAt);
+      return key === selectedRoute && orderDate === dateToUse;
+    });
+  };
+
   // -------------------------
   // CSV builder - one row per item
   // Columns: agentCode, routeCode (order.route), itemCode, quantities, orderDate (IST YYYY-MM-DD), orderTime (IST hh:mm:ss)
+  // -------------------------
+  // -------------------------
+  // CSV builder - one row per item
+  // -------------------------
+  // -------------------------
+  // CSV builder - one row per item
   // -------------------------
   const buildCSVForOrders = (visibleOrders) => {
     if (!visibleOrders || visibleOrders.length === 0) return null;
 
     const headers = [
+      "EntryNo",
       "agentCode",
       "routeCode",
       "itemCode",
-      "quantities",
+      "qty",
       "orderDate",
       "orderTime",
+      "Accode",
+      "Subaccode",
+      "Salesman code",
+      "rate",
+      "amt",
     ];
+
+    // Sort by correct IST time
+    const sorted = [...visibleOrders].sort(
+      (a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt)
+    );
+
     const rows = [];
+    let entryCounter = 1; // increments PER CSV ROW
 
-    visibleOrders.forEach((o) => {
+    sorted.forEach((o) => {
       const items = Array.isArray(o.itemInfo) ? o.itemInfo : [];
-      const orderDateStr = toISTDateString(o.CreatedAt) || "";
-      const orderTimeStr = toISTTimeString(o.CreatedAt) || "";
 
-      // if no items, push a single row with N/A
+      // Convert directly to IST (no manual +5:30)
+      const istDate = new Date(
+        new Date(o.CreatedAt).toLocaleString("en-US", {
+          timeZone: "Asia/Kolkata",
+        })
+      );
+
+      const orderDateStr = istDate.toISOString().split("T")[0];
+      const orderTimeStr = istDate.toTimeString().split(" ")[0];
+
+      const bankCode =
+        o.agentDetails?.BankCode ?? o.raw?.agentDetails?.BankCode ?? "";
+
+      const salesmanCode =
+        o.agentDetails?.SalesmanCode ?? o.raw?.agentDetails?.SalesmanCode ?? "";
+
+      // If no items
       if (!items.length) {
         rows.push({
+          EntryNo: entryCounter++,
           agentCode: o.agentCode ?? "",
-          routeCode: typeof o.route !== "undefined" ? o.route : "",
+          routeCode: o.route ?? "",
           itemCode: "N/A",
-          quantities: 0,
+          qty: 0,
           orderDate: orderDateStr,
           orderTime: orderTimeStr,
+          Accode: bankCode,
+          Subaccode: o.agentCode ?? "",
+          "Salesman code": salesmanCode,
+          rate: 0,
+          amt: 0,
         });
-      } else {
-        items.forEach((it) => {
-          rows.push({
-            agentCode: o.agentCode ?? "",
-            routeCode: typeof o.route !== "undefined" ? o.route : "",
-            itemCode:
-              it.itemCode ??
-              it.ItemCode ??
-              it.code ??
-              String(it.name ?? "UNKNOWN"),
-            quantities: it.quantity ?? it.qty ?? 0,
-            orderDate: orderDateStr,
-            orderTime: orderTimeStr,
-          });
-        });
+        return;
       }
+
+      // For each item row
+      items.forEach((it) => {
+        rows.push({
+          EntryNo: entryCounter++, // ✔ each item gets own entry number
+          agentCode: o.agentCode ?? "",
+          routeCode: o.route ?? "",
+          itemCode: it.itemCode ?? it.code ?? it.itemName ?? "UNKNOWN",
+          qty: it.quantity ?? it.qty ?? 0,
+          orderDate: orderDateStr,
+          orderTime: orderTimeStr,
+          Accode: bankCode,
+          Subaccode: o.agentCode ?? "",
+          "Salesman code": salesmanCode,
+          rate: it.price ?? 0,
+          amt: it.totalPrice ?? 0,
+        });
+      });
     });
 
-    // build CSV string with BOM
+    // Convert rows → CSV
     const headerLine = headers.join(",") + "\n";
+
     const body = rows
-      .map((r) =>
+      .map((row) =>
         headers
-          .map((h) => {
-            const v = r[h] ?? "";
-            return `"${String(v).replace(/"/g, '""')}"`;
-          })
+          .map((h) => `"${String(row[h] ?? "").replace(/"/g, '""')}"`)
           .join(",")
       )
       .join("\n");
@@ -391,14 +480,22 @@ export default function AcceptedOrdersPage() {
   };
 
   const createCSVForSelectedRoute = () => {
-    // gather visible orders (already filtered by route and date)
-    const visible = [...todayOrders, ...yesterdayOrders];
-    Object.keys(olderOrders).forEach((k) => visible.push(...olderOrders[k]));
+    if (!selectedRoute) {
+      setSnack({
+        open: true,
+        message: "Please select a route",
+        severity: "warning",
+      });
+      return;
+    }
 
+    const dateToUse = csvDate || toIST(new Date()).toISOString().split("T")[0];
+
+    const visible = filterOrdersForCSV();
     if (!visible.length) {
       setSnack({
         open: true,
-        message: "No orders to export for selected filter",
+        message: `No orders found for ${dateToUse}`,
         severity: "warning",
       });
       return;
@@ -415,11 +512,14 @@ export default function AcceptedOrdersPage() {
     }
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
     const route = routes.find((r) => r.key === selectedRoute);
-    const routeDisplay = route ? `${route.name.replace(/\s+/g, "_")}_${route.code}` : "selected";
-    const safeName = `accepted_${routeDisplay}_${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
+    const routeDisplay = route
+      ? `${route.name.replace(/\s+/g, "_")}_${route.code}`
+      : "selected";
+
+    const safeName = `accepted_${dateToUse}_${routeDisplay}.csv`;
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -431,7 +531,7 @@ export default function AcceptedOrdersPage() {
 
     setSnack({
       open: true,
-      message: `CSV created (${visible.length} order rows transformed to item-rows)`,
+      message: `CSV created for ${dateToUse}`,
       severity: "success",
     });
   };
@@ -439,83 +539,101 @@ export default function AcceptedOrdersPage() {
   // -------------------------
   // Section renderer
   // -------------------------
-  const renderSection = (title, list) => (
-    <>
-      <TableRow sx={{ background: "#073763" }}>
-        <TableCell colSpan={9} sx={{ fontWeight: "bold", color: "white" }}>
-          {title}
-        </TableCell>
-      </TableRow>
+  const renderSection = (title, list, isOlder = false) => {
+    const isOpen = isOlder
+      ? expandedSections.Older[title]
+      : expandedSections[title];
 
-      {list.length === 0 ? (
-        <TableRow>
-          <TableCell colSpan={9} sx={{ textAlign: "center" }}>
-            No Accepted Orders
+    return (
+      <>
+        {/* Header Row – clickable */}
+        <TableRow
+          onClick={() => (isOlder ? toggleOlder(title) : toggleSection(title))}
+          sx={{
+            background: "#073763",
+            cursor: "pointer",
+          }}
+        >
+          <TableCell
+            colSpan={9}
+            sx={{
+              fontWeight: "bold",
+              color: "white",
+              userSelect: "none",
+            }}
+          >
+            {title} {isOpen ? "▼" : "►"} {/* Expand/Collapse Icon */}
           </TableCell>
         </TableRow>
-      ) : (
-        list.map((o, i) => (
-          <TableRow
-            hover
-            key={o.OrderId || `${o.agentCode}-${i}-${title}`}
-            sx={{ cursor: "pointer" }}
-            onClick={() =>
-              navigate(`/orders?orderId=${o.OrderId}&agentCode=${o.agentCode}`)
-            }
-          >
-            <TableCell sx={{ width: 40 }}>{i + 1}</TableCell>
-            <TableCell sx={{ width: 120 }}>{o.agentCode}</TableCell>
-            <TableCell
-              sx={{
-                minWidth: 180,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {o.AgentName}
-            </TableCell>
-            <TableCell sx={{ whiteSpace: "nowrap", width: 100 }}>
-              {o.route}
-            </TableCell>
-            <TableCell sx={{ width: 140 }}>
-              {o.routeInfo?.RouteName ?? "(No route)"}
-            </TableCell>
 
-            <TableCell sx={{ whiteSpace: "nowrap", width: 120 }}>
-              {o.routeInfo?.VehicleNo ?? "-"}
-            </TableCell>
-
-            <TableCell sx={{ width: 150 }}>
-              {cleanPrice(o.TotalOrder)}
-            </TableCell>
-
-            <TableCell sx={{ width: 200 }}>
-              {o.CreatedAt
-                ? new Date(o.CreatedAt).toLocaleString("en-IN")
-                : "-"}
-            </TableCell>
-
-            <TableCell sx={{ width: 120 }}>
-              <Box
-                sx={{
-                  px: 1,
-                  py: 0.5,
-                  bgcolor: "#4CAF5033",
-                  color: "#2e7d32",
-                  borderRadius: "10px",
-                  textAlign: "center",
-                  fontWeight: "bold",
-                }}
+        {/* Hidden unless expanded */}
+        {isOpen &&
+          (list.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9} sx={{ textAlign: "center" }}>
+                No Accepted Orders
+              </TableCell>
+            </TableRow>
+          ) : (
+            list.map((o, i) => (
+              <TableRow
+                hover
+                key={o.OrderId || `${o.agentCode}-${i}-${title}`}
+                sx={{ cursor: "pointer" }}
+                onClick={() =>
+                  navigate(
+                    `/orders?orderId=${o.OrderId}&agentCode=${o.agentCode}`
+                  )
+                }
               >
-                स्वीकारले
-              </Box>
-            </TableCell>
-          </TableRow>
-        ))
-      )}
-    </>
-  );
+                <TableCell sx={{ width: 40 }}>{i + 1}</TableCell>
+                <TableCell sx={{ width: 120 }}>{o.agentCode}</TableCell>
+                <TableCell
+                  sx={{
+                    minWidth: 180,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {o.AgentName}
+                </TableCell>
+                <TableCell sx={{ width: 100 }}>{o.route}</TableCell>
+                <TableCell sx={{ width: 140 }}>
+                  {o.routeInfo?.RouteName ?? "(No route)"}
+                </TableCell>
+                <TableCell sx={{ width: 120 }}>
+                  {o.routeInfo?.VehicleNo ?? "-"}
+                </TableCell>
+                <TableCell sx={{ width: 150 }}>
+                  {cleanPrice(o.TotalOrder)}
+                </TableCell>
+                <TableCell sx={{ width: 200 }}>
+                  {o.CreatedAt
+                    ? new Date(o.CreatedAt).toLocaleString("en-IN")
+                    : "-"}
+                </TableCell>
+                <TableCell sx={{ width: 120 }}>
+                  <Box
+                    sx={{
+                      px: 1,
+                      py: 0.5,
+                      bgcolor: "#4CAF5033",
+                      color: "#2e7d32",
+                      borderRadius: "10px",
+                      textAlign: "center",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    स्वीकारले
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))
+          ))}
+      </>
+    );
+  };
 
   // -------------------------
   // UI
@@ -607,32 +725,27 @@ export default function AcceptedOrdersPage() {
               </Typography>
 
               <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-                <FormControl size="small" sx={{ minWidth: 300 }}>
+                {/* Route Dropdown */}
+                <FormControl size="small" sx={{ minWidth: 220 }}>
                   <InputLabel id="route-filter-label" shrink>
-                    Filter by Route
+                    Select Route (Required)
                   </InputLabel>
                   <Select
                     labelId="route-filter-label"
-                    label="Filter by Route"
+                    label="Select Route"
                     value={selectedRoute}
                     onChange={(e) => setSelectedRoute(e.target.value)}
                     displayEmpty
                     renderValue={(selected) => {
                       if (!selected) {
                         return (
-                          <span style={{ color: "#999" }}>All Routes</span>
+                          <span style={{ color: "#999" }}>Select Route</span>
                         );
                       }
-                      const route = routes.find((r) => r.key === selected);
-                      return route
-                        ? `${route.name} (${route.code})`
-                        : selected;
+                      const r = routes.find((x) => x.key === selected);
+                      return r ? `${r.name} (${r.code})` : selected;
                     }}
                   >
-                    <MenuItem value="">
-                      <em>All Routes</em>
-                    </MenuItem>
-
                     {routes.map((r) => (
                       <MenuItem key={r.key} value={r.key}>
                         {r.name} ({r.code})
@@ -641,31 +754,25 @@ export default function AcceptedOrdersPage() {
                   </Select>
                 </FormControl>
 
+                {/* CSV Date Picker */}
                 <TextField
+                  label="CSV Date (Required)"
                   type="date"
                   InputLabelProps={{ shrink: true }}
-                  label="From Date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
+                  value={csvDate}
+                  onChange={(e) => setCsvDate(e.target.value)}
+                  sx={{ width: 180 }}
                 />
 
-                <TextField
-                  type="date"
-                  InputLabelProps={{ shrink: true }}
-                  label="To Date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                />
-
-                {/* Create CSV button — show only when a route filter is applied and there are visible orders */}
-                {selectedRoute &&
-                  todayOrders.length +
-                    yesterdayOrders.length +
-                    Object.values(olderOrders).reduce(
-                      (s, a) => s + a.length,
-                      0
-                    ) >
-                    0 && (
+                {/* Create CSV button */}
+                {selectedRoute && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                    }}
+                  >
                     <Button
                       variant="contained"
                       startIcon={<DownloadIcon />}
@@ -678,7 +785,18 @@ export default function AcceptedOrdersPage() {
                     >
                       Create CSV
                     </Button>
-                  )}
+
+                    {/* Show selected date */}
+                    <Typography
+                      variant="caption"
+                      sx={{ mt: 0.5, color: "#444" }}
+                    >
+                      (
+                      {csvDate || toIST(new Date()).toISOString().split("T")[0]}
+                      )
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Box>
 
@@ -718,9 +836,11 @@ export default function AcceptedOrdersPage() {
 
                   <TableBody>
                     {renderSection("Today", todayOrders)}
+
                     {renderSection("Yesterday", yesterdayOrders)}
-                    {Object.keys(olderOrders).map((date) =>
-                      renderSection(date, olderOrders[date])
+
+                    {Object.keys(olderOrders).map((dateKey) =>
+                      renderSection(dateKey, olderOrders[dateKey], true)
                     )}
                   </TableBody>
                 </Table>
